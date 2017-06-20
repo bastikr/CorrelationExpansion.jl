@@ -638,4 +638,33 @@ end
 master(tspan, state0, H::LazyTensor, J; kwargs...) = master(tspan, state0, LazySum(H), J; kwargs...)
 
 
+function master_dynamic(tspan, state0::State, f::Function;
+                rates::DecayRates=nothing,
+                fout::Union{Function,Void}=nothing,
+                kwargs...)
+    tspan_ = convert(Vector{Float64}, tspan)
+    D = allocate_memory(state0)
+    function dmaster_dynamic_(t::Float64, state::State, dstate::State)
+        dmaster_dynamic(t, state, f, rates, dstate, D)
+    end
+    x0 = Vector{Complex128}(length(state0))
+    recast!(state0, x0)
+    state = copy(state0)
+    dstate = copy(state0)
+    timeevolution.integrate(tspan_, dmaster_dynamic_, x0, state, dstate, fout, kwargs...)
+end
+
+function dmaster_dynamic(t::Float64, state::State, f::Function, rates::DecayRates,
+                dstate::State, tmp::Dict{String, Any})
+    result = f(t, state)
+    @assert 3 <= length(result) <= 4
+    if length(result) == 3
+        H, J, Jdagger = result
+        rates_ = rates
+    else
+        H, J, Jdagger, rates_ = result
+    end
+    dmaster(state, H, rates_, J, Jdagger, dstate, tmp)
+end
+
 end # module

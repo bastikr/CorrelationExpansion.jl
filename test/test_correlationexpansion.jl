@@ -99,4 +99,34 @@ for i=1:length(rho_t)
     @test 1e-5 > D(rho_ce_t[i], rho_t[i])
 end
 
+# Compare to standard time-dependent master time evolution
+rho = randdo(b1) ⊗ randdo(b2) ⊗ randdo(b3) ⊗ randdo(b4)
+rho_ce = ce.approximate(rho, S2 ∪ S3 ∪ S4)
+
+j1 = LazyTensor(b, [1, 2, 3, 4], [randoperator(b1), randoperator(b2), randoperator(b3), randoperator(b4)])
+j2 = LazyTensor(b, [1, 2, 3, 4], [randoperator(b1), randoperator(b2), randoperator(b3), randoperator(b4)])
+J = LazyTensor[j1, j2]
+Jdagger = dagger.(J)
+
+Jdense = full.(J)
+Jdagger_dense = full.(Jdagger)
+
+v = rand(Float64, length(J))
+Γ = v * transpose(v)
+
+H = LazySum(h, dagger(h))
+Hdense = full(H)
+
+T = [0.:0.005:0.01;]
+
+f_ce(t, state) = (cos(t)*H, J, Jdagger, exp(-t)*Γ)
+tout_ce, rho_ce_t = ce.master_dynamic(T, rho_ce, f_ce)
+
+
+f(t, state) = (cos(t)*Hdense, Jdense, Jdagger_dense, exp(-t)*Γ)
+tout, rho_t = timeevolution.master_dynamic(T, full(rho), f)
+for i=1:length(rho_t)
+    @test 1e-5 > D(rho_ce_t[i], rho_t[i])
+end
+
 end # testset
