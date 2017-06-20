@@ -578,40 +578,36 @@ function allocate_memory(rho0::State, H::LazySum, J::Vector{LazyTensor})
 end
 
 function as_vector(rho::State, x::Vector{Complex128})
-    i = 0
+    i = 1
     for op in rho.operators
-        L_i = length(op.basis_l)*length(op.basis_r)
-        data = vec(op.data)
-        @inbounds x[i+1:i+L_i] = data
-        i += L_i
+        Ni = length(op.data)
+        copy!(x, i, op.data, 1, Ni)
+        i += Ni
     end
     for masks_n in rho.masks
         for mask in masks_n
             op = rho.correlations[mask]
-            L_i = length(op.basis_l)*length(op.basis_r)
-            data = vec(op.data)
-            @inbounds x[i+1:i+L_i] = data
-            i += L_i
+            Ni = length(op.data)
+            copy!(x, i, op.data, 1, Ni)
+            i += Ni
         end
     end
     x
 end
 
 function as_operator(x::Vector{Complex128}, rho::State)
-    i = 0
+    i = 1
     for op in rho.operators
-        L_i = length(op.basis_l)*length(op.basis_r)
-        data = vec(op.data)
-        @inbounds data[:] = x[i+1:i+L_i]
-        i += L_i
+        Ni = length(op.data)
+        copy!(op.data, 1, x, i, Ni)
+        i += Ni
     end
     for masks_n in rho.masks
         for mask in masks_n
             op = rho.correlations[mask]
-            L_i = length(op.basis_l)*length(op.basis_r)
-            data = vec(op.data)
-            @inbounds data[:] = x[i+1:i+L_i]
-            i += L_i
+            Ni = length(op.data)
+            copy!(op.data, 1, x, i, Ni)
+            i += Ni
         end
     end
     rho
