@@ -565,18 +565,18 @@ function dmaster(rho::State, H::LazySum,
     end
 end
 
-function allocate_memory(rho0::State, H::LazySum, J::Vector{LazyTensor})
+function allocate_memory(state::State)
     D = Dict{String, Any}()
-    D["tmp_rho1"] = copy(rho0)
-    D["tmp_rho2"] = copy(rho0)
+    D["tmp_rho1"] = copy(state)
+    D["tmp_rho2"] = copy(state)
     correlations = Dict{Mask, Dict{Mask, DenseOperator}}()
-    for mask in keys(rho0.correlations)
+    for mask in keys(state.correlations)
         correlations[mask] = Dict{Mask, DenseOperator}()
     end
-    D["cachedptrace"] = CachedPTrace(rho0.N, rho0.basis_l, rho0.basis_r,
-                                    Mask(rho0.N),
-                                    rho0.operators,
-                                    zeros(Complex128, rho0.N),
+    D["cachedptrace"] = CachedPTrace(state.N, state.basis_l, state.basis_r,
+                                    Mask(state.N),
+                                    state.operators,
+                                    zeros(Complex128, state.N),
                                     correlations,
                                     Dict{Mask, Complex128}())
     D
@@ -624,7 +624,7 @@ function master(tspan, state0::State, H::LazySum, J::Vector{LazyTensor};
                 fout::Union{Function,Void}=nothing,
                 kwargs...)
     tspan_ = convert(Vector{Float64}, tspan)
-    D = allocate_memory(state0, H, J)
+    D = allocate_memory(state0)
     function dmaster_(t::Float64, state::State, dstate::State)
         dmaster(state, H, rates, J, Jdagger, dstate, D)
     end
