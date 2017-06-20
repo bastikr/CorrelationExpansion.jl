@@ -47,7 +47,7 @@ subcorrelationmasks(mask::Mask) = [indices2mask(length(mask), indices) for indic
         chain([combinations(mask2indices(mask), k) for k=2:sum(mask)-1]...)]
 
 
-type CEOperator <: Operator
+type State <: Operator
     N::Int
     basis_l::CompositeBasis
     basis_r::CompositeBasis
@@ -57,7 +57,7 @@ type CEOperator <: Operator
     correlations::Dict{Mask, DenseOperator}
 end
 
-function CEOperator(operators::Vector{DenseOperator},
+function State(operators::Vector{DenseOperator},
             correlations::Dict{Mask, DenseOperator},
             factor::Number=1)
     N = length(operators)
@@ -77,10 +77,10 @@ function CEOperator(operators::Vector{DenseOperator},
     end
     ops = [copy(op) for op in operators]
     cors = Dict{Mask, DenseOperator}(m=>deepcopy(op) for (m, op) in correlations)
-    CEOperator(N, basis_l, basis_r, factor, ops, masks, cors)
+    State(N, basis_l, basis_r, factor, ops, masks, cors)
 end
 
-function CEOperator(basis_l::CompositeBasis, basis_r::CompositeBasis, S)
+function State(basis_l::CompositeBasis, basis_r::CompositeBasis, S)
     N = length(basis_l.bases)
     operators = [DenseOperator(basis_l.bases[i], basis_r.bases[i]) for i=1:N]
     correlations = Dict{Mask, DenseOperator}()
@@ -89,10 +89,10 @@ function CEOperator(basis_l::CompositeBasis, basis_r::CompositeBasis, S)
         @assert sum(m) > 1
         correlations[m] = tensor(operators[m])
     end
-    CEOperator(operators, correlations)
+    State(operators, correlations)
 end
-CEOperator(basis::CompositeBasis, S) = CEOperator(basis, basis, S)
-function CEOperator(operators::Vector, S)
+State(basis::CompositeBasis, S) = State(basis, basis, S)
+function State(operators::Vector, S)
     N = length(operators)
     correlations = Dict{Mask, DenseOperator}()
     for op in operators
@@ -105,9 +105,9 @@ function CEOperator(operators::Vector, S)
         b_r = CompositeBasis([op.basis_r for op in operators[m]]...)
         correlations[m] = DenseOperator(b_l, b_r)
     end
-    CEOperator(operators, correlations)
+    State(operators, correlations)
 end
-CEOperator(operators::Vector) = CEOperator(operators, Dict{Mask, DenseOperator}())
+State(operators::Vector) = State(operators, Dict{Mask, DenseOperator}())
 
 
 """
@@ -188,7 +188,7 @@ function correlation(rho::DenseOperator, mask::Mask;
     σ
 end
 correlation(rho::Operator, indices::Vector{Int}) = correlation(rho, indices2mask(length(rho.basis_l.bases), indices))
-correlation(rho::CEOperator, mask::Mask) = rho.correlations[mask]
+correlation(rho::State, mask::Mask) = rho.correlations[mask]
 
 """
 Approximate a density operator by including only certain correlations.
@@ -216,7 +216,7 @@ function approximate(rho::DenseOperator, masks)
                                          operators=operators,
                                          subcorrelations=subcorrelations)
     end
-    CEOperator(operators, correlations, alpha)
+    State(operators, correlations, alpha)
 end
 function approximate(rho::DenseOperator)
     @assert typeof(rho.basis_l) == CompositeBasis
@@ -227,7 +227,7 @@ end
 
 ptrace(mask::Mask, indices::Vector{Int}) = mask[complement(length(mask), indices)]
 
-function ptrace(rho::CEOperator, indices::Vector{Int})
+function ptrace(rho::State, indices::Vector{Int})
     N = rho.N
     operators = rho.operators[complement(N, indices)]
     factors = [trace(op) for op in rho.operators]
@@ -247,7 +247,7 @@ function ptrace(rho::CEOperator, indices::Vector{Int})
     rho.factor*result
 end
 
-function Base.full(rho::CEOperator)
+function Base.full(rho::State)
     result = tensor(rho.operators...)
     for (mask, correlation) in rho.correlations
         result += embedcorrelation(rho.operators, mask, correlation)
@@ -255,26 +255,26 @@ function Base.full(rho::CEOperator)
     rho.factor*result
 end
 
-function *(op1::CEOperator, op2::LazyTensor)
+function *(op1::State, op2::LazyTensor)
     QuantumOptics.bases.check_multiplicable(op1, op2)
     result = deepcopy(op1)
     gemm!(Complex(1.), op1, op2, Complex(0.), result)
     return result
 end
-function *(op1::LazyTensor, op2::CEOperator)
+function *(op1::LazyTensor, op2::State)
     QuantumOptics.bases.check_multiplicable(op1, op2)
     result = deepcopy(op2)
     gemm!(Complex(1.), op1, op2, Complex(0.), result)
     return result
 end
-*(a::Number, b::CEOperator) = CEOperator(b.operators, b.correlations, a*b.factor)
-*(a::CEOperator, b::Number) = CEOperator(a.operators, a.correlations, a.factor*b)
+*(a::Number, b::State) = State(b.operators, b.correlations, a*b.factor)
+*(a::State, b::Number) = State(a.operators, a.correlations, a.factor*b)
 
 function reduced_indices(I, I_)
     Int[findfirst(j->i==j, I) for i in I_]
 end
 
-function gemm!(alpha, a::LazyTensor, b::CEOperator, beta, result::CEOperator)
+function gemm!(alpha, a::LazyTensor, b::State, beta, result::State)
     N = b.N
     result.factor = a.factor*alpha*b.factor
     @assert beta == complex(0.)
@@ -304,7 +304,7 @@ function gemm!(alpha, a::LazyTensor, b::CEOperator, beta, result::CEOperator)
     end
 end
 
-function gemm!(alpha, a::CEOperator, b::LazyTensor, beta, result::CEOperator)
+function gemm!(alpha, a::State, b::LazyTensor, beta, result::State)
     N = a.N
     result.factor = a.factor*alpha*b.factor
     @assert beta == complex(0.)
@@ -384,7 +384,7 @@ function ptrace_into(op::CachedPTrace, I::Mask, indices::Vector{Int},
     muladd(result.data, productfactor, tmp)
 end
 
-function cache_ptrace_into(rho::CEOperator, cache::CachedPTrace)
+function cache_ptrace_into(rho::State, cache::CachedPTrace)
     N = rho.N
     correlations = cache.correlations
     correlations_trace = cache.correlations_trace
@@ -412,7 +412,7 @@ function cache_ptrace_into(rho::CEOperator, cache::CachedPTrace)
     end
 end
 
-function add_into(op::CEOperator, result::CEOperator, cache::CachedPTrace)
+function add_into(op::State, result::State, cache::CachedPTrace)
     N = op.N
     cache_ptrace_into(op, cache)
     indices = [2:N;]
@@ -432,7 +432,7 @@ function add_into(op::CEOperator, result::CEOperator, cache::CachedPTrace)
     end
 end
 
-function Base.fill!(rho::CEOperator, a::Number)
+function Base.fill!(rho::State, a::Number)
     for op in rho.operators
         fill!(op.data, a)
     end
@@ -455,10 +455,10 @@ function issubmask(submask::Mask, mask::Mask)
 end
 
 
-function _dmaster_J(rho::CEOperator,
+function _dmaster_J(rho::State,
                  rates::Vector{Float64},
                  J::Vector{LazyTensor}, Jdagger::Vector{LazyTensor},
-                 drho::CEOperator, tmp::Dict{String, Any})
+                 drho::State, tmp::Dict{String, Any})
     cache = tmp["cachedptrace"]
     tmp1 = tmp["tmp_rho1"]
     tmp2 = tmp["tmp_rho2"]
@@ -474,10 +474,10 @@ function _dmaster_J(rho::CEOperator,
     end
 end
 
-function _dmaster_J(rho::CEOperator,
+function _dmaster_J(rho::State,
                  rates::Matrix{Float64},
                  J::Vector{LazyTensor}, Jdagger::Vector{LazyTensor},
-                 drho::CEOperator, tmp::Dict{String, Any})
+                 drho::State, tmp::Dict{String, Any})
     cache = tmp["cachedptrace"]
     tmp1 = tmp["tmp_rho1"]
     tmp2 = tmp["tmp_rho2"]
@@ -493,10 +493,10 @@ function _dmaster_J(rho::CEOperator,
     end
 end
 
-function dmaster(rho::CEOperator, H::LazySum,
+function dmaster(rho::State, H::LazySum,
                  rates,
                  J::Vector{LazyTensor}, Jdagger::Vector{LazyTensor},
-                 drho::CEOperator, tmp::Dict{String, Any})
+                 drho::State, tmp::Dict{String, Any})
     cache = tmp["cachedptrace"]
     tmp1 = tmp["tmp_rho1"]
     tmp2 = tmp["tmp_rho2"]
@@ -539,7 +539,7 @@ function dmaster(rho::CEOperator, H::LazySum,
     end
 end
 
-function allocate_memory(rho0::CEOperator, H::LazySum, J::Vector{LazyTensor})
+function allocate_memory(rho0::State, H::LazySum, J::Vector{LazyTensor})
     D = Dict{String, Any}()
     D["tmp_rho1"] = deepcopy(rho0)
     D["tmp_rho2"] = deepcopy(rho0)
@@ -556,13 +556,13 @@ function allocate_memory(rho0::CEOperator, H::LazySum, J::Vector{LazyTensor})
     D
 end
 
-function datalength(x::CEOperator)
+function datalength(x::State)
     L = sum(Int[length(op.basis_l)*length(op.basis_r) for op in x.operators])
     L += sum(Int[length(op.basis_l)*length(op.basis_r) for op in values(x.correlations)])
     L
 end
 
-function as_vector(rho::CEOperator, x::Vector{Complex128})
+function as_vector(rho::State, x::Vector{Complex128})
     i = 0
     for op in rho.operators
         L_i = length(op.basis_l)*length(op.basis_r)
@@ -582,7 +582,7 @@ function as_vector(rho::CEOperator, x::Vector{Complex128})
     x
 end
 
-function as_operator(x::Vector{Complex128}, rho::CEOperator)
+function as_operator(x::Vector{Complex128}, rho::State)
     i = 0
     for op in rho.operators
         L_i = length(op.basis_l)*length(op.basis_r)
@@ -602,14 +602,14 @@ function as_operator(x::Vector{Complex128}, rho::CEOperator)
     rho
 end
 
-function integrate_master(dmaster::Function, tspan, rho0::CEOperator;
+function integrate_master(dmaster::Function, tspan, rho0::State;
                 fout::Union{Function,Void}=nothing, kwargs...)
     x0 = as_vector(rho0, zeros(Complex128, datalength(rho0)))
     f = (x->x)
     if fout==nothing
         tout = Float64[]
-        xout = CEOperator[]
-        function fout_(t, rho::CEOperator)
+        xout = State[]
+        function fout_(t, rho::State)
             push!(tout, t)
             push!(xout, deepcopy(rho))
         end
@@ -623,7 +623,7 @@ function integrate_master(dmaster::Function, tspan, rho0::CEOperator;
     return fout==nothing ? (tout, xout) : nothing
 end
 
-function master(tspan, rho0::CEOperator, H::LazySum, J::Vector{LazyTensor};
+function master(tspan, rho0::State, H::LazySum, J::Vector{LazyTensor};
                 rates::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
                 Jdagger::Vector{LazyTensor} = LazyTensor[dagger(j) for j=J],
                 fout::Union{Function,Void}=nothing,
