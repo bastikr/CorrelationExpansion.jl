@@ -102,7 +102,7 @@ function State(basis_l::CompositeBasis, basis_r::CompositeBasis, masks)
     for m in masks
         m = as_mask(N, m)
         @assert sum(m) > 1
-        correlations[m] = tensor(operators[m])
+        correlations[m] = tensor(operators[m]...)
     end
     State(operators, correlations)
 end
