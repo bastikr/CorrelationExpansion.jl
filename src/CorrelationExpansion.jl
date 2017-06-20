@@ -72,6 +72,11 @@ type State <: Operator
     correlations::Dict{Mask, DenseOperator}
 end
 
+function Base.copy(x::State)
+    correlations = Dict(mask=>copy(op) for (mask, op) in x.correlations)
+    State(x.N, x.basis_l, x.basis_r, x.factor, copy.(x.operators), x.masks, correlations)
+end
+
 function State(operators::Vector{DenseOperator},
             correlations::Dict{Mask, DenseOperator},
             factor::Number=1)

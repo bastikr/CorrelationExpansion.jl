@@ -36,13 +36,25 @@ rho = randdo(b1⊗b2)
 sigma = ce.correlation(rho, [1,2])
 @test 1e-13 > D(sigma, rho - ptrace(rho, 2) ⊗ ptrace(rho, 1))
 
-# Test creation of ApproximateOperator
+# Test creation of correlation expansion state
 op1 = randoperator(b)
 op1_ = ce.approximate(op1, S2 ∪ S3 ∪ S4)
 @test 1e-13 > D(op1, op1_)
 
+# Test copy
+state1 = ce.State(b, S2)
+state2 = copy(state1)
+state2.operators[2].data[1] = 1
+mask = ce.indices2mask(4, [2, 4])
+state2.correlations[mask].data[1] = 1
+@test state1.operators[2].data[1] == 0
+@test state1.correlations[mask].data[1] == 0
+
+
 # Test multiplication
 h = 0.5*LazyTensor(b, [1, 2, 3, 4], [randoperator(b1), randoperator(b2), randoperator(b3), randoperator(b4)])
+op1 = randoperator(b)
+op1_ = ce.approximate(op1, S2 ∪ S3 ∪ S4)
 
 @test 1e-13 > D(full(h)*0.3*full(op1_), h*(0.3*op1_))
 @test 1e-13 > D(full(op1_)*0.3*full(h), (op1_*0.3)*h)
