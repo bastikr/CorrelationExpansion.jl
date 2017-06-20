@@ -47,6 +47,21 @@ subcorrelationmasks(mask::Mask) = [indices2mask(length(mask), indices) for indic
         chain([combinations(mask2indices(mask), k) for k=2:sum(mask)-1]...)]
 
 
+"""
+    State(operators, correlations[, factor])
+    State(operators, masks)
+    State(basis, masks)
+    State(basis_l, basis_r, masks)
+
+State representing a correlation expansion series.
+
+Physically the state consists of a product state ``ρ₁`` and the selected
+correlations ``σˢ``. Which correlations are included is specified by
+the given masks `s ∈ Sₙ`.
+```math
+ρ = ρ₁ + ∑_{s ∈ Sₙ} \\tilde{σ}ˢ
+```
+"""
 type State <: Operator
     N::Int
     basis_l::CompositeBasis
