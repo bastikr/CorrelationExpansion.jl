@@ -73,11 +73,6 @@ type State <: Operator
     correlations::Dict{Mask, DenseOperator}
 end
 
-function Base.copy(x::State)
-    correlations = Dict(mask=>copy(op) for (mask, op) in x.correlations)
-    State(x.N, x.basis_l, x.basis_r, x.factor, copy.(x.operators), x.masks, correlations)
-end
-
 function State(operators::Vector{DenseOperator},
             correlations::Dict{Mask, DenseOperator},
             factor::Number=1)
@@ -97,7 +92,7 @@ function State(operators::Vector{DenseOperator},
         push!(masks[sum(mask)], mask)
     end
     ops = [copy(op) for op in operators]
-    cors = Dict{Mask, DenseOperator}(m=>deepcopy(op) for (m, op) in correlations)
+    cors = Dict{Mask, DenseOperator}(m=>copy(op) for (m, op) in correlations)
     State(N, basis_l, basis_r, factor, ops, masks, cors)
 end
 
@@ -135,6 +130,10 @@ function Base.length(x::State)
     L
 end
 
+function Base.copy(x::State)
+    correlations = Dict(mask=>copy(op) for (mask, op) in x.correlations)
+    State(x.N, x.basis_l, x.basis_r, x.factor, copy.(x.operators), x.masks, correlations)
+end
 
 """
 Tensor product of a correlation and the density operators of the other subsystems.
@@ -283,13 +282,13 @@ end
 
 function *(op1::State, op2::LazyTensor)
     QuantumOptics.bases.check_multiplicable(op1, op2)
-    result = deepcopy(op1)
+    result = copy(op1)
     gemm!(Complex(1.), op1, op2, Complex(0.), result)
     return result
 end
 function *(op1::LazyTensor, op2::State)
     QuantumOptics.bases.check_multiplicable(op1, op2)
-    result = deepcopy(op2)
+    result = copy(op2)
     gemm!(Complex(1.), op1, op2, Complex(0.), result)
     return result
 end
@@ -567,8 +566,8 @@ end
 
 function allocate_memory(rho0::State, H::LazySum, J::Vector{LazyTensor})
     D = Dict{String, Any}()
-    D["tmp_rho1"] = deepcopy(rho0)
-    D["tmp_rho2"] = deepcopy(rho0)
+    D["tmp_rho1"] = copy(rho0)
+    D["tmp_rho2"] = copy(rho0)
     correlations = Dict{Mask, Dict{Mask, DenseOperator}}()
     for mask in keys(rho0.correlations)
         correlations[mask] = Dict{Mask, DenseOperator}()
