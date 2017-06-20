@@ -3,6 +3,7 @@ module CorrelationExpansion
 import Base: trace, ==, +, -, *, /
 import QuantumOptics: dagger, identityoperator,
                     trace, ptrace, normalize!, tensor, permutesystems
+import QuantumOptics.timeevolution: recast!
 import QuantumOptics.operators_dense: gemv!, gemm!
 
 using QuantumOptics
@@ -582,7 +583,7 @@ function allocate_memory(rho0::State, H::LazySum, J::Vector{LazyTensor})
     D
 end
 
-function as_vector(rho::State, x::Vector{Complex128})
+function recast!(rho::State, x::Vector{Complex128})
     i = 1
     for op in rho.operators
         Ni = length(op.data)
@@ -600,7 +601,7 @@ function as_vector(rho::State, x::Vector{Complex128})
     x
 end
 
-function as_operator(x::Vector{Complex128}, rho::State)
+function recast!(x::Vector{Complex128}, rho::State)
     i = 1
     for op in rho.operators
         Ni = length(op.data)
@@ -618,44 +619,24 @@ function as_operator(x::Vector{Complex128}, rho::State)
     rho
 end
 
-function integrate_master(dmaster::Function, tspan, rho0::State;
-                fout::Union{Function,Void}=nothing, kwargs...)
-    x0 = as_vector(rho0, zeros(Complex128, length(rho0)))
-    f = (x->x)
-    if fout==nothing
-        tout = Float64[]
-        xout = State[]
-        function fout_(t, rho::State)
-            push!(tout, t)
-            push!(xout, deepcopy(rho))
-        end
-        f = fout_
-    else
-        f = fout
-    end
-    tmp = deepcopy(rho0)
-    f_(t, x::Vector{Complex128}) = f(t, as_operator(x, tmp))
-    QuantumOptics.ode_dopri.ode(dmaster, float(tspan), x0, f_; kwargs...)
-    return fout==nothing ? (tout, xout) : nothing
-end
-
-function master(tspan, rho0::State, H::LazySum, J::Vector{LazyTensor};
-                rates::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
-                Jdagger::Vector{LazyTensor} = LazyTensor[dagger(j) for j=J],
+function master(tspan, state0::State, H::LazySum, J::Vector{LazyTensor};
+                rates::Union{Vector{Float64}, Matrix{Float64}, Void}=nothing,
+                Jdagger::Vector{LazyTensor}=dagger.(J),
                 fout::Union{Function,Void}=nothing,
                 kwargs...)
-    rho = deepcopy(rho0)
-    drho = deepcopy(rho0)
-    D = allocate_memory(rho0, H, J)
-    function dmaster_(t, x::Vector{Complex128}, dx::Vector{Complex128})
-        dmaster(as_operator(x, rho), H, rates, J, Jdagger, drho, D)
-        as_vector(drho, dx)
+    tspan_ = convert(Vector{Float64}, tspan)
+    D = allocate_memory(state0, H, J)
+    function dmaster_(t::Float64, state::State, dstate::State)
+        dmaster(state, H, rates, J, Jdagger, dstate, D)
     end
-    integrate_master(dmaster_, tspan, rho0; fout=fout, kwargs...)
+    x0 = Vector{Complex128}(length(state0))
+    recast!(state0, x0)
+    state = copy(state0)
+    dstate = copy(state0)
+    timeevolution.integrate(tspan_, dmaster_, x0, state, dstate, fout, kwargs...)
 end
 
-master(tspan, rho0, H::LazyTensor, J; kwargs...) = master(tspan, rho0, LazySum(H), J; kwargs...)
-
+master(tspan, state0, H::LazyTensor, J; kwargs...) = master(tspan, state0, LazySum(H), J; kwargs...)
 
 
 end # module
