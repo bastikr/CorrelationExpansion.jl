@@ -109,6 +109,12 @@ function State(operators::Vector, S)
 end
 State(operators::Vector) = State(operators, Dict{Mask, DenseOperator}())
 
+function Base.length(x::State)
+    L = sum(Int[length(op.basis_l)*length(op.basis_r) for op in x.operators])
+    L += sum(Int[length(op.basis_l)*length(op.basis_r) for op in values(x.correlations)])
+    L
+end
+
 
 """
 Tensor product of a correlation and the density operators of the other subsystems.
@@ -556,12 +562,6 @@ function allocate_memory(rho0::State, H::LazySum, J::Vector{LazyTensor})
     D
 end
 
-function datalength(x::State)
-    L = sum(Int[length(op.basis_l)*length(op.basis_r) for op in x.operators])
-    L += sum(Int[length(op.basis_l)*length(op.basis_r) for op in values(x.correlations)])
-    L
-end
-
 function as_vector(rho::State, x::Vector{Complex128})
     i = 0
     for op in rho.operators
@@ -604,7 +604,7 @@ end
 
 function integrate_master(dmaster::Function, tspan, rho0::State;
                 fout::Union{Function,Void}=nothing, kwargs...)
-    x0 = as_vector(rho0, zeros(Complex128, datalength(rho0)))
+    x0 = as_vector(rho0, zeros(Complex128, length(rho0)))
     f = (x->x)
     if fout==nothing
         tout = Float64[]
