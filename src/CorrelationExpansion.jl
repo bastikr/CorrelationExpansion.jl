@@ -7,6 +7,7 @@ import QuantumOptics.timeevolution: recast!
 import QuantumOptics.operators_dense: gemv!, gemm!
 
 using QuantumOptics
+const DecayRates = QuantumOptics.timeevolution.timeevolution_master.DecayRates
 
 using Combinatorics, Iterators
 const sortedindices = QuantumOptics.sortedindices
@@ -618,7 +619,7 @@ function recast!(x::Vector{Complex128}, rho::State)
 end
 
 function master(tspan, state0::State, H::LazySum, J::Vector{LazyTensor};
-                rates::Union{Vector{Float64}, Matrix{Float64}, Void}=nothing,
+                rates::DecayRates=nothing,
                 Jdagger::Vector{LazyTensor}=dagger.(J),
                 fout::Union{Function,Void}=nothing,
                 kwargs...)
