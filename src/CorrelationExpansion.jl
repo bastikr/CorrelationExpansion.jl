@@ -95,25 +95,25 @@ function State(operators::Vector{DenseOperator},
     State(N, basis_l, basis_r, factor, ops, masks, cors)
 end
 
-function State(basis_l::CompositeBasis, basis_r::CompositeBasis, S)
+function State(basis_l::CompositeBasis, basis_r::CompositeBasis, masks)
     N = length(basis_l.bases)
     operators = [DenseOperator(basis_l.bases[i], basis_r.bases[i]) for i=1:N]
     correlations = Dict{Mask, DenseOperator}()
-    for m in S
+    for m in masks
         m = as_mask(N, m)
         @assert sum(m) > 1
         correlations[m] = tensor(operators[m])
     end
     State(operators, correlations)
 end
-State(basis::CompositeBasis, S) = State(basis, basis, S)
-function State(operators::Vector, S)
+State(basis::CompositeBasis, masks) = State(basis, basis, masks)
+function State(operators::Vector, masks)
     N = length(operators)
     correlations = Dict{Mask, DenseOperator}()
     for op in operators
         @assert typeof(op) == DenseOperator
     end
-    for m in S
+    for m in masks
         m = as_mask(N, m)
         @assert sum(m) > 1
         b_l = CompositeBasis([op.basis_l for op in operators[m]]...)
