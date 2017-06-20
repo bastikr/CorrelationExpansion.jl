@@ -128,7 +128,6 @@ function State(operators::Vector, masks)
     end
     State(operators, correlations)
 end
-State(operators::Vector) = State(operators, Dict{Mask, DenseOperator}())
 
 function Base.length(x::State)
     L = sum(Int[length(op.basis_l)*length(op.basis_r) for op in x.operators])
