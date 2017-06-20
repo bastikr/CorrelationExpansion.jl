@@ -65,10 +65,10 @@ end
 psi0 = cs.quantum.blochstate(phi, theta)
 rho0 = psi0⊗dagger(psi0)
 # tout, rho_t = cs.quantum.timeevolution(T, system, rho0)
-tout, rho_t = timeevolution.master_h(T, rho0, full(H), [full(j) for j in J]; Gamma=Γ)
+tout, rho_t = timeevolution.master_h(T, rho0, full(H), [full(j) for j in J]; rates=Γ)
 
 ce0 = ce.approximate(rho0, ce.masks(N))
-tout, ce_t = ce.master(T, ce0, H, J; Gamma=Γ)
+tout, ce_t = ce.master(T, ce0, H, J; rates=Γ)
 
 for (rho, rho_ce) in zip(rho_t, ce_t)
     @test 1e-5 > D(rho, rho_ce)
@@ -80,7 +80,7 @@ state0 = cs.meanfield.blochstate(phi, theta)
 tout, state_mf_t = cs.meanfield.timeevolution(T, system, state0)
 
 ce0 = ce.approximate(rho0)
-tout, ce_t = ce.master(T, ce0, H, J; Gamma=Γ)
+tout, ce_t = ce.master(T, ce0, H, J; rates=Γ)
 
 for (state_mf, rho_ce, rho) in zip(state_mf_t, ce_t, rho_t)
     rho_mf = cs.meanfield.densityoperator(state_mf)
@@ -95,7 +95,7 @@ state0 = cs.mpc.blochstate(phi, theta)
 tout, state_mpc_t = cs.mpc.timeevolution(T, system, state0)
 
 ce0 = ce.approximate(rho0, S2)
-tout, ce_t = ce.master(T, ce0, H, J; Gamma=Γ)
+tout, ce_t = ce.master(T, ce0, H, J; rates=Γ)
 
 for (state_mpc, rho_ce, rho) in zip(state_mf_t, ce_t, rho_t)
     rho_mpc = cs.mpc.densityoperator(state_mpc)

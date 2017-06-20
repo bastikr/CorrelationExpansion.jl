@@ -456,45 +456,45 @@ end
 
 
 function _dmaster_J(rho::CEOperator,
-                 Gamma::Vector{Float64},
+                 rates::Vector{Float64},
                  J::Vector{LazyTensor}, Jdagger::Vector{LazyTensor},
                  drho::CEOperator, tmp::Dict{String, Any})
     cache = tmp["cachedptrace"]
     tmp1 = tmp["tmp_rho1"]
     tmp2 = tmp["tmp_rho2"]
     for i=1:length(J)
-        gemm!(Gamma[i], J[i], rho, complex(0.), tmp2)
+        gemm!(rates[i], J[i], rho, complex(0.), tmp2)
         gemm!(complex(1.), tmp2, Jdagger[i], complex(0.), tmp1)
         add_into(tmp1, drho, cache)
         gemm!(complex(-0.5), Jdagger[i], tmp2, complex(0.), tmp1)
         add_into(tmp1, drho, cache)
-        gemm!(-0.5*Gamma[i], rho, Jdagger[i], complex(0.), tmp2)
+        gemm!(-0.5*rates[i], rho, Jdagger[i], complex(0.), tmp2)
         gemm!(complex(1.), tmp2, J[i], complex(0.), tmp1)
         add_into(tmp1, drho, cache)
     end
 end
 
 function _dmaster_J(rho::CEOperator,
-                 Gamma::Matrix{Float64},
+                 rates::Matrix{Float64},
                  J::Vector{LazyTensor}, Jdagger::Vector{LazyTensor},
                  drho::CEOperator, tmp::Dict{String, Any})
     cache = tmp["cachedptrace"]
     tmp1 = tmp["tmp_rho1"]
     tmp2 = tmp["tmp_rho2"]
     for j=1:length(J), i=1:length(J)
-        gemm!(Gamma[i,j], J[i], rho, complex(0.), tmp2)
+        gemm!(rates[i,j], J[i], rho, complex(0.), tmp2)
         gemm!(complex(1.), tmp2, Jdagger[j], complex(0.), tmp1)
         add_into(tmp1, drho, cache)
         gemm!(complex(-0.5), Jdagger[j], tmp2, complex(0.), tmp1)
         add_into(tmp1, drho, cache)
-        gemm!(-0.5*Gamma[i,j], rho, Jdagger[j], complex(0.), tmp2)
+        gemm!(-0.5*rates[i,j], rho, Jdagger[j], complex(0.), tmp2)
         gemm!(complex(1.), tmp2, J[i], complex(0.), tmp1)
         add_into(tmp1, drho, cache)
     end
 end
 
 function dmaster(rho::CEOperator, H::LazySum,
-                 Gamma,
+                 rates,
                  J::Vector{LazyTensor}, Jdagger::Vector{LazyTensor},
                  drho::CEOperator, tmp::Dict{String, Any})
     cache = tmp["cachedptrace"]
@@ -510,7 +510,7 @@ function dmaster(rho::CEOperator, H::LazySum,
         gemm!(1im*a, rho, h, complex(0.), tmp1)
         add_into(tmp1, drho, cache)
     end
-    _dmaster_J(rho, Gamma, J, Jdagger, drho, tmp)
+    _dmaster_J(rho, rates, J, Jdagger, drho, tmp)
     doperators = drho.operators
     dcorrelations = drho.correlations
     for order=2:length(rho.masks)
@@ -624,7 +624,7 @@ function integrate_master(dmaster::Function, tspan, rho0::CEOperator;
 end
 
 function master(tspan, rho0::CEOperator, H::LazySum, J::Vector{LazyTensor};
-                Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
+                rates::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
                 Jdagger::Vector{LazyTensor} = LazyTensor[dagger(j) for j=J],
                 fout::Union{Function,Void}=nothing,
                 kwargs...)
@@ -632,7 +632,7 @@ function master(tspan, rho0::CEOperator, H::LazySum, J::Vector{LazyTensor};
     drho = deepcopy(rho0)
     D = allocate_memory(rho0, H, J)
     function dmaster_(t, x::Vector{Complex128}, dx::Vector{Complex128})
-        dmaster(as_operator(x, rho), H, Gamma, J, Jdagger, drho, D)
+        dmaster(as_operator(x, rho), H, rates, J, Jdagger, drho, D)
         as_vector(drho, dx)
     end
     integrate_master(dmaster_, tspan, rho0; fout=fout, kwargs...)

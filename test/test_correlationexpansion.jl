@@ -80,9 +80,9 @@ H = LazySum(h, dagger(h))
 
 
 T = [0.:0.005:0.01;]
-tout_ce, rho_ce_t = ce.master(T, rho_ce, H, J; Gamma=Γ)
+tout_ce, rho_ce_t = ce.master(T, rho_ce, H, J; rates=Γ)
 
-tout, rho_t = timeevolution.master_h(T, full(rho), full(H), [full(j) for j in J]; Gamma=Γ)
+tout, rho_t = timeevolution.master_h(T, full(rho), full(H), [full(j) for j in J]; rates=Γ)
 for i=1:length(rho_t)
     @test 1e-5 > D(rho_ce_t[i], rho_t[i])
 end
