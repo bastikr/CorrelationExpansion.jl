@@ -6,7 +6,7 @@ using QuantumOptics, Combinatorics, Iterators
 
 const sortedindices = QuantumOptics.sortedindices
 
-typealias Mask BitArray{1}
+const Mask = BitArray{1}
 
 function indices2mask(N::Int, indices::Vector{Int})
     m = Mask(N)
