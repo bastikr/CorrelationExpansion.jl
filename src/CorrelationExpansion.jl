@@ -33,7 +33,6 @@ end
 mask2indices(mask::Mask) = find(mask)
 
 complement = sortedindices.complement
-# complement(N::Int, indices::Vector{Int}) = Int[i for i=1:N if i ∉ indices]
 
 as_mask(N::Int, m::Mask) = (@assert length(m)==N; m)
 function as_mask(N::Int, m)
