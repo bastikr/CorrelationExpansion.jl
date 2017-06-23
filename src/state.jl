@@ -4,10 +4,10 @@ export State, correlation, approximate, CachedPTrace, add_into, embedcorrelation
 
 import Base: trace, ==, +, -, *, /
 import QuantumOptics: dagger, identityoperator,
-            trace, ptrace, normalize!, tensor, permutesystems
-import QuantumOptics.operators_dense: gemv!, gemm!
+            ptrace, normalize!, tensor, permutesystems
+import QuantumOptics.operators_dense: gemm!
 
-using QuantumOptics
+using QuantumOptics, Combinatorics
 using ..mask
 
 
