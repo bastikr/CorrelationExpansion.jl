@@ -1,7 +1,8 @@
 # CorrelationExpansion.jl
 
 **CorrelationExpansion.jl** is a library that can be used to simulate large open quantum systems. By specifying which quantum correlations should be included and which should be neglected the dimensionality of the problem can be reduced to a tractable size. Then a time evolution according to a master equation in this approximation can be performed completely automatically.
-This package is written in [Julia] and builds on [QuantumOptics.jl](https://bastikr.github.io/QuantumOptics.jl).
+This package is written in [Julia] and builds on [QuantumOptics.jl].
+
 
 ## Development status
 
@@ -14,14 +15,13 @@ This package is written in [Julia] and builds on [QuantumOptics.jl](https://bast
 
 ## Installation
 
-
 **CorrelationExpansion.jl** is not an officially registered package but it nevertheless can be installed using julia's package manager:
 
 ```julia
 julia> Pkg.clone("https://github.com/bastikr/CorrelationExpansion.jl.git")
 ```
 
-## Examples
+## Documentation
 
 At the moment there is no documentation, the best way to learn about it is to look through the examples.
 
@@ -30,6 +30,7 @@ https://github.com/bastikr/CorrelationExpansion.jl/tree/master/examples
 
 [Julia]: http://julialang.org
 [qojulia]: https://github.com/qojulia
+[QuantumOptics.jl]: https://bastikr.github.io/QuantumOptics.jl
 
 [travis-url]: https://travis-ci.org/bastikr/CorrelationExpansion.jl
 [travis-img]: https://api.travis-ci.org/bastikr/CorrelationExpansion.jl.png?branch=master
