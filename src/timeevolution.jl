@@ -101,6 +101,26 @@ function allocate_memory(state::State)
     D
 end
 
+
+function _dmaster_J(rho::State,
+                 rates::Void,
+                 J::Vector{LazyTensor}, Jdagger::Vector{LazyTensor},
+                 drho::State, tmp::Dict{String, Any})
+    cache = tmp["cachedptrace"]
+    tmp1 = tmp["tmp_rho1"]
+    tmp2 = tmp["tmp_rho2"]
+    for i=1:length(J)
+        gemm!(1, J[i], rho, complex(0.), tmp2)
+        gemm!(complex(1.), tmp2, Jdagger[i], complex(0.), tmp1)
+        add_into(tmp1, drho, cache)
+        gemm!(complex(-0.5), Jdagger[i], tmp2, complex(0.), tmp1)
+        add_into(tmp1, drho, cache)
+        gemm!(-0.5, rho, Jdagger[i], complex(0.), tmp2)
+        gemm!(complex(1.), tmp2, J[i], complex(0.), tmp1)
+        add_into(tmp1, drho, cache)
+    end
+end
+
 function _dmaster_J(rho::State,
                  rates::Vector{Float64},
                  J::Vector{LazyTensor}, Jdagger::Vector{LazyTensor},

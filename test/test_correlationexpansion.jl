@@ -86,18 +86,38 @@ j1 = LazyTensor(b, [1, 2, 3, 4], [randoperator(b1), randoperator(b2), randoperat
 j2 = LazyTensor(b, [1, 2, 3, 4], [randoperator(b1), randoperator(b2), randoperator(b3), randoperator(b4)])
 J = LazyTensor[j1, j2]
 v = rand(Float64, length(J))
-Γ = v * transpose(v)
 
 H = LazySum(h, dagger(h))
 
-
 T = [0.:0.005:0.01;]
+
+
+Γ = v * transpose(v)
 tout_ce, rho_ce_t = ce.master(T, rho_ce, H, J; rates=Γ)
 
 tout, rho_t = timeevolution.master_h(T, full(rho), full(H), [full(j) for j in J]; rates=Γ)
 for i=1:length(rho_t)
     @test 1e-5 > D(rho_ce_t[i], rho_t[i])
 end
+
+
+Γ = v
+tout_ce, rho_ce_t = ce.master(T, rho_ce, H, J; rates=Γ)
+
+tout, rho_t = timeevolution.master_h(T, full(rho), full(H), [full(j) for j in J]; rates=Γ)
+for i=1:length(rho_t)
+    @test 1e-5 > D(rho_ce_t[i], rho_t[i])
+end
+
+
+Γ = nothing
+tout_ce, rho_ce_t = ce.master(T, rho_ce, H, J; rates=Γ)
+
+tout, rho_t = timeevolution.master_h(T, full(rho), full(H), [full(j) for j in J]; rates=Γ)
+for i=1:length(rho_t)
+    @test 1e-5 > D(rho_ce_t[i], rho_t[i])
+end
+
 
 # Compare to standard time-dependent master time evolution
 rho = randdo(b1) ⊗ randdo(b2) ⊗ randdo(b3) ⊗ randdo(b4)
