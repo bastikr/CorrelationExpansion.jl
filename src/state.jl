@@ -10,9 +10,8 @@ import QuantumOptics.operators_dense: gemm!
 using QuantumOptics, Combinatorics
 using ..mask
 
-
 const sortedindices = QuantumOptics.sortedindices
-import sortedindices: complement
+import QuantumOptics.sortedindices: complement
 complement(x::AbstractArray{Bool}) = [!i for i=x]
 
 

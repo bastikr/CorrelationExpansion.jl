@@ -5,7 +5,7 @@ export Mask, indices2mask, mask2indices, as_mask, masks, subcorrelationmasks, is
 using QuantumOptics, Combinatorics, Iterators
 
 const sortedindices = QuantumOptics.sortedindices
-import sortedindices: complement
+import QuantumOptics.sortedindices: complement
 
 const Mask = BitArray{1}
 
