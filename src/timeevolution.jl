@@ -175,7 +175,7 @@ function dmaster(rho::State, H::LazySum,
                     continue
                 end
                 σ_I -= embedcorrelation(suboperators, submask[I], dcorrelations[submask])
-                for i in setdiff(mask2indices(!submask), mask2indices(!mask))
+                for i in setdiff(mask2indices(complement(submask)), mask2indices(complement(mask)))
                     ops = [i==j ? doperators[j] : rho.operators[j] for j in I]
                     σ_I -= embedcorrelation(ops, submask[I], rho.correlations[submask])
                 end
