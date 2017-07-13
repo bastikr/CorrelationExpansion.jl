@@ -1,6 +1,6 @@
 module state
 
-export State, correlation, approximate, CachedPTrace, add_into, embedcorrelation
+export State, correlation, approximate, CachedPTrace, add_into, embedcorrelation, complement
 
 import Base: trace, ==, +, -, *, /
 import QuantumOptics: dagger, identityoperator,
@@ -10,9 +10,9 @@ import QuantumOptics.operators_dense: gemm!
 using QuantumOptics, Combinatorics
 using ..mask
 
-
 const sortedindices = QuantumOptics.sortedindices
-complement = sortedindices.complement
+import QuantumOptics.sortedindices: complement
+complement(x::AbstractArray{Bool}) = [!i for i=x]
 
 
 """
@@ -168,7 +168,7 @@ function correlation(rho::DenseOperator, mask::Mask;
     end
     order = sum(mask)
     rho = normalize(rho)
-    σ = ptrace(rho, mask2indices(!mask))
+    σ = ptrace(rho, mask2indices(complement(mask)))
     σ -= tensor(operators[mask]...)
     for submask in subcorrelationmasks(mask)
         subcorrelation = correlation(rho, submask;
@@ -366,10 +366,10 @@ function ptrace_into(op::CachedPTrace, I::Mask, indices::Vector{Int},
         if all(I[indices_σ])
             productfactor += factor_*op.correlations_trace[I_σ]
         elseif all(I[complement_indices_σ])
-            tmp = op.correlations[I_σ][!I[I_σ]].data
+            tmp = op.correlations[I_σ][complement(I[I_σ])].data
             muladd(result.data, factor_, tmp)
         else
-            tmp = embedcorrelation(ops, I_σ[!I], op.correlations[I_σ][!I[I_σ]]).data
+            tmp = embedcorrelation(ops, I_σ[complement(I)], op.correlations[I_σ][complement(I[I_σ])]).data
             muladd(result.data, factor_, tmp)
         end
     end
@@ -393,7 +393,7 @@ function cache_ptrace_into(rho::State, cache::CachedPTrace)
         for n=order-1:-1:1
             for indices in combinations(1:order, n)
                 J = indices2mask(order, indices)
-                i = complement(order, indices)[indmin(dims[!J])]
+                i = complement(order, indices)[indmin(dims[complement(J)])]
                 J_sup = copy(J)
                 J_sup[i] = true
                 C[J] = ptrace(C[J_sup], sum(J_sup[1:i]))

@@ -1,12 +1,16 @@
 module mask
 
-export Mask, indices2mask, mask2indices, as_mask, masks, subcorrelationmasks, issubmask
+export Mask, indices2mask, mask2indices, as_mask, masks, subcorrelationmasks, issubmask, complement
 
 using QuantumOptics, Combinatorics, Iterators
 
 const sortedindices = QuantumOptics.sortedindices
+import QuantumOptics.sortedindices: complement
 
 const Mask = BitArray{1}
+
+complement(x::Mask) = BitArray([!i for i=x])
+
 
 function indices2mask(N::Int, indices::Vector{Int})
     m = Mask(N)
