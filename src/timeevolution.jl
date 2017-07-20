@@ -5,7 +5,7 @@ export master, master_dynamic
 import QuantumOptics.timeevolution: recast!
 
 using QuantumOptics
-using QuantumOptics.operators_dense: gemm!
+using QuantumOptics.operators: gemm!
 using ..mask
 using ..state
 

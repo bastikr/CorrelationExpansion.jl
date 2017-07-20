@@ -5,7 +5,7 @@ export State, correlation, approximate, CachedPTrace, add_into, embedcorrelation
 import Base: trace, ==, +, -, *, /
 import QuantumOptics: dagger, identityoperator,
             ptrace, normalize!, tensor, permutesystems
-import QuantumOptics.operators_dense: gemm!
+import QuantumOptics.operators: gemm!
 
 using QuantumOptics, Combinatorics
 using ..mask
