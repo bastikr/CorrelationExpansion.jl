@@ -16,5 +16,6 @@ deploydocs(
     repo = "github.com/bastikr/CorrelationExpansion.jl.git",
     target = "build",
     deps = nothing,
-    make = nothing
+    make = nothing,
+    julia = 0.6
 )
