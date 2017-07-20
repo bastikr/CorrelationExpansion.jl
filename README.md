@@ -23,9 +23,9 @@ julia> Pkg.clone("https://github.com/bastikr/CorrelationExpansion.jl.git")
 
 ## Documentation
 
-At the moment there is no documentation, the best way to learn about it is to look through the examples.
+The documentation can be found at
 
-https://github.com/bastikr/CorrelationExpansion.jl/tree/master/examples
+https://bastikr.github.io/CorrelationExpansion.jl/latest
 
 
 [Julia]: http://julialang.org
