@@ -1,3 +1,20 @@
 using Documenter, CorrelationExpansion
 
-makedocs()
+pages = [
+    "index.md"
+]
+
+makedocs(
+    modules = [CorrelationExpansion],
+    checkdocs = :exports,
+    format = :html,
+    sitename = "CorrelationExpansion.jl",
+    pages = pages
+    )
+
+deploydocs(
+    repo = "github.com/bastikr/CorrelationExpansion.jl.git",
+    target = "build",
+    deps = nothing,
+    make = nothing
+)
