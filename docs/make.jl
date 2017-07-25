@@ -1,7 +1,8 @@
 using Documenter, CorrelationExpansion
 
 pages = [
-    "index.md"
+    "index.md",
+    "api.md"
 ]
 
 makedocs(
