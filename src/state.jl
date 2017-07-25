@@ -5,7 +5,7 @@ export State, correlation, approximate, CachedPTrace, add_into, embedcorrelation
 import Base: trace, ==, +, -, *, /
 import QuantumOptics: dagger, identityoperator,
             ptrace, normalize!, tensor, permutesystems
-import QuantumOptics.operators: gemm!
+import QuantumOptics.operators: gemm!, check_ptrace_arguments
 
 using QuantumOptics, Combinatorics
 using ..mask
@@ -220,6 +220,7 @@ end
 ptrace(mask::Mask, indices::Vector{Int}) = mask[complement(length(mask), indices)]
 
 function ptrace(rho::State, indices::Vector{Int})
+    check_ptrace_arguments(rho, indices)
     N = rho.N
     operators = rho.operators[complement(N, indices)]
     factors = [trace(op) for op in rho.operators]
