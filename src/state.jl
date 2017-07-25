@@ -103,17 +103,15 @@ function Base.copy(x::State)
 end
 
 """
-Tensor product of a correlation and the density operators of the other subsystems.
+    embedcorrelation(ops, mask, correlation)
 
-Arguments
----------
-operators
-    Tuple containing the reduced density operators of each subsystem.
-mask
-    A tuple containing booleans specifying if the n-th subsystem is included
-    in the correlation.
-correlation
-    Correlation operator for the subsystems specified by the given mask.
+Tensor product of a correlation and the density operators of the remaining subsystems.
+
+# Arguments
+* `operators`: Vector containing the reduced density operators of each subsystem.
+* `mask`: Indices or mask specifying on which subsystems the given
+        correlation is defined.
+* `correlation`: Correlation operator defined in the specified subsystems.
 """
 function embedcorrelation(operators::Vector{DenseOperator}, mask::Mask,
             correlation::DenseOperator)
@@ -141,22 +139,18 @@ end
 embedcorrelation(operators::Vector{DenseOperator}, indices::Vector{Int}, correlation) = embedcorrelation(operators, indices2mask(length(operators), indices), correlation)
 
 """
-Calculate the normalized correlation of the subsystems specified by the given index mask.
+    correlation(rho, mask; <keyword arguments>)
 
-Arguments
----------
-rho
-    Density operator of the total system.
-mask
-    A tuple containing booleans specifying if the n-th subsystem is included
-    in the correlation.
+Calculate the correlation of the subsystems specified by the given mask.
 
-Optional Arguments
-------------------
-operators
-    A tuple containing the reduced density operators of the single subsystems.
-subcorrelations
-    A (mask->operator) dictionary storing already calculated correlations.
+# Arguments
+* `rho`: Density operator of the total system.
+* `mask`: Indices or mask specifying on which subsystems the given
+        correlation is defined.
+* `operators` (optional):  A tuple containing all reduced density
+        operators of the single subsystems.
+* `subcorrelations`: A (mask->operator) dictionary storing already
+        calculated correlations.
 """
 function correlation(rho::DenseOperator, mask::Mask;
             operators::Vector{DenseOperator}=(N=length(mask); [ptrace(normalize(rho), complement(N, [i])) for i in 1:N]),
@@ -183,16 +177,11 @@ correlation(rho::Operator, indices::Vector{Int}) = correlation(rho, indices2mask
 correlation(rho::State, mask::Mask) = rho.correlations[mask]
 
 """
-Approximate a density operator by including only certain correlations.
+    approximate(rho[, masks])
 
-Arguments
----------
-rho
-    The density operator that should be approximated.
-masks
-    A set containing an index mask for every correlation that should be
-    included. A index mask is a tuple consisting of booleans which indicate
-    if the n-th subsystem is included in the correlation.
+Correlation expansion of a density operator.
+
+If masks are specified, only these correlations are included.
 """
 function approximate(rho::DenseOperator, masks)
     @assert typeof(rho.basis_l) == CompositeBasis
