@@ -14,6 +14,14 @@ const sortedindices = QuantumOptics.sortedindices
 import QuantumOptics.sortedindices: complement
 complement(x::AbstractArray{Bool}) = [!i for i=x]
 
+function ptrace2(state, indices)
+    if length(indices)==length(basis(state).bases)
+        return trace(state)
+    else
+        return ptrace(state, indices)
+    end
+end
+
 
 """
     State(operators, correlations[, factor])
@@ -153,7 +161,7 @@ Calculate the correlation of the subsystems specified by the given mask.
         calculated correlations.
 """
 function correlation(rho::DenseOperator, mask::Mask;
-            operators::Vector{DenseOperator}=(N=length(mask); [ptrace(normalize(rho), complement(N, [i])) for i in 1:N]),
+            operators::Vector{DenseOperator}=(N=length(mask); [ptrace2(normalize(rho), complement(N, [i])) for i in 1:N]),
             subcorrelations::Dict{Mask, DenseOperator}=Dict{Mask, DenseOperator}())
     # Check if this correlation was already calculated.
     @assert length(mask) == length(rho.basis_l.bases)
@@ -162,7 +170,7 @@ function correlation(rho::DenseOperator, mask::Mask;
     end
     order = sum(mask)
     rho = normalize(rho)
-    σ = ptrace(rho, mask2indices(complement(mask)))
+    σ = ptrace2(rho, mask2indices(complement(mask)))
     σ -= tensor(operators[mask]...)
     for submask in subcorrelationmasks(mask)
         subcorrelation = correlation(rho, submask;
@@ -188,7 +196,7 @@ function approximate(rho::DenseOperator, masks)
     N = length(rho.basis_l.bases)
     alpha = trace(rho)
     rho = normalize(rho)
-    operators = [ptrace(rho, complement(N, [i])) for i in 1:N]
+    operators = [ptrace2(rho, complement(N, [i])) for i in 1:N]
     subcorrelations = Dict{Mask, DenseOperator}() # Dictionary to store intermediate results
     correlations = Dict{Mask, DenseOperator}()
     for m in masks
@@ -206,7 +214,7 @@ function approximate(rho::DenseOperator)
 end
 
 
-ptrace(mask::Mask, indices::Vector{Int}) = mask[complement(length(mask), indices)]
+ptrace2(mask::Mask, indices::Vector{Int}) = mask[complement(length(mask), indices)]
 
 function ptrace(rho::State, indices::Vector{Int})
     check_ptrace_arguments(rho, indices)
@@ -221,9 +229,9 @@ function ptrace(rho::State, indices::Vector{Int})
             correlation = factor*rho.correlations[mask]
         else
             J = [i-sum(complement(N, I).<i) for i in I ∩ indices]
-            correlation = factor*ptrace(rho.correlations[mask], J)
+            correlation = factor*ptrace2(rho.correlations[mask], J)
         end
-        op = embedcorrelation(operators, ptrace(mask, indices), correlation)
+        op = embedcorrelation(operators, ptrace2(mask, indices), correlation)
         result += op
     end
     rho.factor*result
@@ -386,7 +394,7 @@ function cache_ptrace_into(rho::State, cache::CachedPTrace)
                 i = complement(order, indices)[indmin(dims[complement(J)])]
                 J_sup = copy(J)
                 J_sup[i] = true
-                C[J] = ptrace(C[J_sup], sum(J_sup[1:i]))
+                C[J] = ptrace2(C[J_sup], sum(J_sup[1:i]))
             end
         end
         J_sup = falses(order)
