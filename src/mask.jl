@@ -1,54 +1,68 @@
-module mask
+module mask2
 
-export Mask, indices2mask, mask2indices, as_mask, masks, subcorrelationmasks, issubmask, complement
+export Mask, masks, submasks, complement, subseteq
 
 using QuantumOptics, Combinatorics, Iterators
 
 const sortedindices = QuantumOptics.sortedindices
+import Base: getindex, ==, ⊆, intersect
 import QuantumOptics.sortedindices: complement
 
-const Mask = BitArray{1}
 
-complement(x::Mask) = BitArray([!i for i=x])
+type Mask
+    N::Int
+    indices::Vector{Int}
+end
 
+Base.copy(m::Mask) = Mask(m.N, copy(m.indices))
+Base.length(m::Mask) = length(m.indices)
 
-function indices2mask(N::Int, indices::Vector{Int})
-    m = Mask(N)
-    for i in indices
-        m[i] = true
+function ==(a::Mask, b::Mask)
+    @assert a.N == b.N
+    a.indices == b.indices
+end
+
+Base.getindex(a::AbstractArray, m::Mask) = getindex(a, m.indices)
+function Base.getindex(m::Mask, indices::Vector{Int})
+    _indices = Int[]
+    for i=1:length(indices)
+        if indices[i] ∈ m.indices
+            push!(_indices, i)
+        end
     end
-    m
+    Mask(length(indices), _indices)
+end
+function Base.getindex(m1::Mask, m2::Mask)
+    @assert m1.N == m2.N
+    getindex(m1, m2.indices)
 end
 
-function indices2mask(N::Int, indices::Vector{Int}, m::Mask)
-    fill!(m, false)
-    for i in indices
-        m[i] = true
-    end
-    m
+function Base.conj(m::Mask)
+    indices = sortedindices.complement(m.N, m.indices)
+    Mask(m.N, indices)
 end
 
-mask2indices(mask::Mask) = find(mask)
-
-as_mask(N::Int, m::Mask) = (@assert length(m)==N; m)
-function as_mask(N::Int, m)
-    m = collect(m)
-    sortedindices.check_indices(N, m)
-    indices2mask(N, m)
+function Base.intersect(m1::Mask, m2::Mask)
+    @assert m1.N == m2.N
+    Mask(m1.N, sortedindices.intersect(m1.indices, m2.indices))
 end
 
-masks(N::Int, order::Int) = Set(combinations(1:N, order))
+function Base.union(m1::Mask, m2::Mask)
+end
+
+
+function masks(N::Int, order)
+    collect(Mask(N, indices) for indices in combinations(1:N, order))
+end
+
 masks(N::Int) = reduce(∪, [masks(N, order) for order=2:N])
 
-subcorrelationmasks(mask::Mask) = [indices2mask(length(mask), indices) for indices in
-        chain([combinations(mask2indices(mask), k) for k=2:sum(mask)-1]...)]
+submasks(mask::Mask) = [Mask(mask.N, indices) for indices in chain([combinations(mask.indices, k) for k=2:length(mask.indices)-1]...)]
 
-function issubmask(submask::Mask, mask::Mask)
-    if sum(submask) >= sum(mask)
-        return false
-    end
-    for i=1:length(mask)
-        if submask[i] && !mask[i]
+function ⊆(submask::Mask, mask::Mask)
+    @assert submask.N == mask.N
+    for i in submask.indices
+        if i ∉ mask.indices
             return false
         end
     end

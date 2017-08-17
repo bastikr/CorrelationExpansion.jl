@@ -1,4 +1,5 @@
 names = [
+    "test_mask.jl",
     "test_correlationexpansion.jl",
     "test_correlationexpansion_mpc.jl",
 ]
