@@ -26,7 +26,7 @@ function master(tspan, state0::State, H::LazySum, J::Vector{LazyTensor};
     recast!(state0, x0)
     state = copy(state0)
     dstate = copy(state0)
-    QuantumOptics.timeevolution.integrate(tspan_, dmaster_, x0, state, dstate, fout, kwargs...)
+    QuantumOptics.timeevolution.integrate(tspan_, dmaster_, x0, state, dstate, fout; kwargs...)
 end
 
 master(tspan, state0, H::LazyTensor, J; kwargs...) = master(tspan, state0, LazySum(H), J; kwargs...)
@@ -45,7 +45,7 @@ function master_dynamic(tspan, state0::State, f::Function;
     recast!(state0, x0)
     state = copy(state0)
     dstate = copy(state0)
-    QuantumOptics.timeevolution.integrate(tspan_, dmaster_dynamic_, x0, state, dstate, fout, kwargs...)
+    QuantumOptics.timeevolution.integrate(tspan_, dmaster_dynamic_, x0, state, dstate, fout; kwargs...)
 end
 
 function recast!(rho::State, x::Vector{Complex128})
