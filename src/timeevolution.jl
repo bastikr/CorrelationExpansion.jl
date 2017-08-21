@@ -90,7 +90,6 @@ type PTracePlan
     operator2correlation::Vector{Int}
     correlation2operator::Vector{Int}
     correlation2correlation::Vector{Int}
-
 end
 
 
@@ -108,11 +107,70 @@ function tensor{N}(a::AbstractArray, m::Mask{N})
     reduce(tensor, a, m)
 end
 
+type HamiltonianPlan_rho{N}
+    indices_left::Mask{N}
+    subtraces_masks::Vector{Mask{N}}
+    indices_p_s::Vector{Mask{N}}
+    subtraces_masks_p_s::Vector{Vector{Mask{N}}}
+    indices_p_s_::Vector{Mask{N}}
+    subtraces_masks_p_s_::Vector{Vector{Mask{N}}}
+    indices_ptrace::Vector{Vector{Mask{N}}}
+end
 
-function dmaster(rho::State, H::LazySum,
+type HamiltonianPlan_sigma{N}
+
+end
+
+type IncoherentPlan_rho{N}
+
+end
+
+type IncoherentPlan_sigma{N}
+
+end
+
+type MasterPlan
+    hplan_rho::Vector{HamiltonianPlan_rho}
+    hplan_sigma::Vector{HamiltonianPlan_sigma}
+    jplan_rho::Vector{IncoherentPlan_rho}
+    jplan_sigma::Vector{IncoherentPlan_sigma}
+end
+
+function create_hamiltonianplan{N}(state::State, H_u::LazyTensor)
+    m = Mask{N}(H_u.indices)
+    L = length(m)
+    indices_left = m
+    subtraces_masks = Vector{Mask{N}}(L)
+    indices_p_s = Vector{Mask{N}}(L)
+    subtraces_masks_p_s = Vector{Vector{Mask{N}}}(L)
+    indices_p_s_ = Vector{Mask{N}}(L)
+    subtraces_masks_p_s_ = Vector{Vector{Mask{N}}}(L)
+    for k in 1:length(m)
+        i_p = m[k]
+        subtraces_masks[k] = setdiff(m, i_p)
+
+    indices_p_s = [i_s for i_s=1:length(state.masks) if state.masks[i_s]]
+end
+
+function create_incoherentplan(rho::State, J::Vector{TensorOperator})
+    IncoherentPlan_rho(), IncoherentPlan_sigma()
+end
+
+function create_masterplan(rho::State, H::LazySum, J::Vector{TensorOperator})
+    N = length(H.indices)
+    hplans_rho = Vector{HamiltonianPlan_rho}(N)
+    hplans_sigma = Vector{HamiltonianPlan_sigma}(N)
+    for u=1:length(H.indices)
+        hplans_rho[u], hplans_sigma[u] = create_hamiltonianplan(rho, H.operators[u])
+    end
+    jplan_rho, jplan_h = create_incoherentplan(rho, J)
+    MasterPlan(hplan_rho, hplan_sigma, jplan_rho, jplan_sigma)
+end
+
+function dmaster{N}(rho::State, H::LazySum,
                  rates,
                  J::Vector{TensorOperator}, Jdagger::Vector{TensorOperator},
-                 drho::State, tmp::Dict{String, Any})
+                 drho::State, tmp::Dict{String, Any}, plan::MasterPlan{N})
     cache1 = tmp["cache1"]
     cache2 = tmp["cache2"]
     h_rho = tmp["h_rho"]
@@ -128,22 +186,28 @@ function dmaster(rho::State, H::LazySum,
         mul!(1im*a, rho, h, cache2, rho_h)
 
         subtraces_ = subtraces(h.indices, h_rho.operators) # tr(h*rho)
-        for i_p in # drho_{p'} = tr_p [h, rho]
-            # into operators
-            f = prod(subtraces, cᵤ ∩ p)
-            for i_s in
-                f2 = prod(subtraces, cᵤ ∩ p ∩ s')
-                if p' ∩ s == 0
-                    f += f2*trace(h_rho.correlations[i_s])
-                else
-                    drho.operators[i_p] = f2*ptrace(h_rho.correlations[i_s] - rho_h.correlations[i_s], s ∩ p)
-                end
+
+        # into operators
+        hplan_rho = plan.hplan_rho[u]
+        for k in 1:length(hplan_rho.indices_left) # drho_{p'} = tr_p [h, rho]
+            i_p = hplan_rho.indices_left[k]
+            for j in 1:length(hplan_rho.indices_p_s_) # p' ∩ s' == {}
+                i_s = hplan_rho.indices_p_s_[k][j]
+                f2 = prod(subtraces, hplan_rho.innersubtraces_masks[k][j]) # cᵤ ∩ p ∩ s'
+                drho.operators[i_p] = -1im*f2*ptrace(h_rho.correlations[i_s] - rho_h.correlations[i_s], plan_rho.indices_ptrace[k][j])
             end
-            drho.operators[i_p] += f*(tensor(h_rho.operators, cᵤ ∩ p') - tensor(rho_.operators, cᵤ ∩ p'))
+            f = prod(subtraces, hplan_rho.subtraces_masks[k]) # cᵤ ∩ p
+            for j in 1:length(hplan_rho.indices_p_s) # p' ∩ s == {}
+                i_s = hplan_rho.indices_p_s[k][j]
+                f2 = prod(subtraces, hplan_rho.innersubtraces_masks[k][j]) # cᵤ ∩ p ∩ s'
+                f += f2*trace(h_rho.correlations[i_s])
+            end
+            drho.operators[i_p] += -1im*f*(h_rho.operators[i_p] - rho_h.operators[i_p])
         end
 
+        # into correlations
+        hplan_sigma = plan.hplan_sigma[u]
         for i_p in
-            # into correlations
             f = prod(subtraces, cᵤ ∩ p)
             for i_s in
                 f2 = prod(subtraces, cᵤ ∩ p ∩ s')
